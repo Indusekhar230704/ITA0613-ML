@@ -2,44 +2,42 @@ import math
 import csv
 
 def load_csv(filename):
-    lines = csv.reader(open("C:/Users/aspi/Downloads/id3.csv", "r"))
+    lines = csv.reader(open("C:/Users/aspi/Documents/csvfiles/id3.csv", "r"))
     dataset = list(lines)
     headers = dataset.pop(0)
     return dataset, headers
 
 class Node:
-    def __init__(self, attribute):  # Use double underscores for the constructor name
+    def __init__(self, attribute):
         self.attribute = attribute
         self.children = []
-        self.answer = " "
-        
-def subtables(data, col, delete):
-    dic = {}
-    coldata = [row[col] for row in data]
-    attr = list(set(coldata))
+        self.answer = ""
 
-    counts = [0] * len(attr)
-    r = len(data)
-    c = len(data[0])
-    
-    for y in range(r):
+    def subtables(self, data, col, delete):
+        dic = {}
+        coldata = [row[col] for row in data]
+        attr = list(set(coldata))
+        counts = [0] * len(attr)
+        r = len(data)
+        c = len(data[0])
+
         for x in range(len(attr)):
-            if data[y][col] == attr[x]:
-                counts[x] += 1
+            for y in range(r):
+                if data[y][col] == attr[x]:
+                    counts[x] += 1
 
-    for x in range(len(attr)):
-        dic[attr[x]] = [[0 for _ in range(c)] for _ in range(counts[x])]  # Use "_" for unused loop variables
+        for x in range(len(attr)):
+            dic[attr[x]] = [[0 for i in range(c)] for j in range(counts[x])]
+
         pos = 0
         for y in range(r):
             if data[y][col] == attr[x]:
                 if delete:
-                    data[y].pop(col)  # Use pop to delete column element
+                    del data[y][col]
                 dic[attr[x]][pos] = data[y]
                 pos += 1
-    return attr, dic
 
-# ... (rest of the code remains the same)
-
+        return attr, dic
 
 def entropy(S):
     attr = list(set(S))
@@ -53,10 +51,12 @@ def entropy(S):
     sums = 0
     for cnt in counts:
         sums += -1 * cnt * math.log(cnt, 2)
+
     return sums
 
 def compute_gain(data, col):
-    attr, dic = subtables(data, col, delete=False)
+    node = Node("")
+    attr, dic = node.subtables(data, col, delete=False)
 
     total_size = len(data)
     entropies = [0] * len(attr)
@@ -67,12 +67,13 @@ def compute_gain(data, col):
         ratio[x] = len(dic[attr[x]]) / (total_size * 1.0)
         entropies[x] = entropy([row[-1] for row in dic[attr[x]]])
         total_entropy -= ratio[x] * entropies[x]
+
     return total_entropy
 
 def build_tree(data, features):
+    node = Node("")
     lastcol = [row[-1] for row in data]
-    if len(set(lastcol)) == 1:
-        node = Node("")
+    if (len(set(lastcol))) == 1:
         node.answer = lastcol[0]
         return node
 
@@ -80,14 +81,16 @@ def build_tree(data, features):
     gains = [0] * n
     for col in range(n):
         gains[col] = compute_gain(data, col)
+
     split = gains.index(max(gains))
     node = Node(features[split])
     fea = features[:split] + features[split + 1:]
 
-    attr, dic = subtables(data, split, delete=True)
+    attr, dic = node.subtables(data, split, delete=True)
     for x in range(len(attr)):
         child = build_tree(dic[attr[x]], fea)
         node.children.append((attr[x], child))
+
     return node
 
 def print_tree(node, level):
@@ -100,8 +103,6 @@ def print_tree(node, level):
         print(" " * (level + 1), value)
         print_tree(n, level + 2)
 
-# ... (rest of the code remains the same)
-
 def classify(node, x_test, features):
     if node.answer != "":
         print(node.answer)
@@ -113,11 +114,12 @@ def classify(node, x_test, features):
             classify(n, x_test, features)
 
 '''Main program'''
-dataset, features = load_csv("C:/Users/aspi/Downloads/data3.csv")  # Update the path to the dataset
+dataset, features = load_csv("id3.csv")
 node1 = build_tree(dataset, features)
 print("The decision tree for the dataset using ID3 algorithm is")
 print_tree(node1, 0)
-testdata, features = load_csv("C:/Users/aspi/Downloads/data3_test.csv")  # Update the path to the test data
+
+testdata, features = load_csv("id3.csv")
 for xtest in testdata:
     print("The test instance:", xtest)
     print("The label for the test instance:", end=" ")
